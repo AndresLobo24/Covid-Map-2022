@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Perceptual Circle Scaling</title>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+        }
+
+        h1 {
+            position: absolute;
+            left: 20px;
+            top: 10px;
+            padding: 8px 2%;
+            margin: 0;
+            background: rgba(6, 167, 175, 0.8);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            color: whitesmoke;
+            font-size: 1.5em;
+            z-index: 800;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .map-description {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            max-width: 300px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+            z-index: 900;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>United States COVID-19 Death Estimates 2022</h1>
+
+    <div class="map-description">
+        <p>This map visualizes COVID-19 death estimates across U.S. states in 2022. Larger circles indicate higher death tolls, while smaller circles represent lower values.</p>
+        <p>Click <a href="https://www.cdc.gov/nchs/pressroom/sosmap/covid19_mortality_final/COVID19.htm" style="color: blue;" target="_blank">here</a> to view the CDC source used to help create this map.</p>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-ajax/2.1.0/leaflet.ajax.min.js"></script>
+
+    <script>
+        var map = L.map('map', {
+            center: [39.5, -95.3],
+            zoom: 4,
+            zoomControl: false
+        });
+
+        // ✅ Using OpenStreetMap as basemap (No Authentication Required)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        var minRadius = 8;
+        var minValue = 238;
+
+        function calcRadius(val) {
+            return Math.sqrt(val / minValue) * minRadius;
+        }
+
+        $.getJSON("assets/data.geojson", function (data) {
+            var states = L.geoJson(data, {
+                attribution: 'Data: CDC, Map: Andres Lobo',
+                pointToLayer: function (feature, latlng) {
+                    var circle = L.circleMarker(latlng, {
+                        color: '#06A7AF',
+                        opacity: 1,
+                        weight: 2,
+                        fillColor: '#06A7AF',
+                        fillOpacity: 0.6,
+                        radius: calcRadius(feature.properties.estimate)
+                    });
+
+                    // Bind tooltip to each circle
+                    circle.bindTooltip(
+                        `<b>${feature.properties.name}</b><br> Death Toll: ${feature.properties.estimate.toLocaleString()}`
+                    );
+
+                    // ✅ Hover effects: Change color to red when hovered
+                    circle.on('mouseover', function () {
+                        this.setStyle({ fillColor: 'red', color: 'red' });
+                    });
+
+                    // ✅ Revert back to original color when mouse leaves
+                    circle.on('mouseout', function () {
+                        this.setStyle({ fillColor: '#06A7AF', color: '#06A7AF' });
+                    });
+
+                    return circle;
+                }
+            }).addTo(map);
+        });
+
+        L.control.scale({ position: 'bottomleft' }).addTo(map);
+    </script>
+
+</body>
+</html>
